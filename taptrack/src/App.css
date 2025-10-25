@@ -30,20 +30,20 @@
   --input-border: rgba(255,255,255,.08);
 }
 
-/* Light theme overrides — brighter, logo-friendly */
+/* Light theme overrides — Teal White Glow */
 :root[data-theme="light"] {
   --text: #0f172a;
   --muted: #475569;
 
-  /* background (light) */
-  --bg-radial: rgba(120,235,255,0.65);
-  --bg-top:   #cfe8ff;
-  --bg-mid:   #a9d2ff;
-  --bg-bot:   #8bbfff;
+  /* Teal Glow Background (softer, brand-aligned) */
+  --bg-radial: rgba(16,184,201,0.25);
+  --bg-top:   #f7fafb;
+  --bg-mid:   #e9f4f6;
+  --bg-bot:   #dff0f2;
 
   /* panel (light) */
   --panel:   #ffffff;
-  --panel-2: #f3f6fd;
+  --panel-2: #f5fafb;
   --panel-border: rgba(15,23,42,.08);
 
   /* inputs (light) */
@@ -57,7 +57,7 @@
 * { box-sizing: border-box }
 html, body, #root { height: 100% }
 
-body{
+body {
   margin:0;
   color:var(--text);
   background:
@@ -283,4 +283,36 @@ body{
   background: rgba(0, 0, 0, 0.15);  /* darker background bubble */
   border-color: rgba(0, 0, 0, 0.25);
   color: #0f172a; /* dark checkmark */
+}
+/* visual cue while dragging (subtle) */
+.tracker-row[style*="transform"] .tracker {
+  box-shadow: 0 10px 28px rgba(79,124,255,.35);
+}
+/* --- Teal delete button (both themes) --- */
+.delete{
+  border: 1px solid rgba(0, 200, 210, .45);
+  background: linear-gradient(180deg, #23c9d9, #10b8c9);
+  color: #052a2f;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: transform .08s ease, filter .15s ease, box-shadow .15s ease;
+  box-shadow: 0 6px 18px rgba(16, 184, 201, .25);
+}
+.delete:hover{ filter: brightness(1.05) saturate(1.02) }
+.delete:active{ transform: scale(.96) }
+.delete svg { display:block } /* crisp icon alignment */
+
+/* --- Light mode: brighter tracker chip so it’s distinct from dark --- */
+:root[data-theme="light"] .tracker{
+  background: linear-gradient(180deg, #6089ff, #5378ff); /* brighter blues */
+  border-color: rgba(79,124,255,.70);
+  box-shadow: 0 8px 26px rgba(79,124,255,.30);
+}
+
+/* Keep dark mode as-is; only adjust the light-mode ✓ visibility as before */
+:root[data-theme="light"] .tracker.tick::after {
+  background: rgba(0,0,0,0.15);
+  border-color: rgba(0,0,0,0.25);
+  color:#0f172a;
 }

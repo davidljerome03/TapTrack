@@ -14,6 +14,9 @@ import {
 } from "firebase/firestore";
 import "./App.css";
 
+// NEW: dnd
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -126,6 +129,30 @@ function App() {
     setNewButtonName("");
   };
 
+  // --- NEW: drag & drop helpers ---
+  const reorder = (list, startIndex, endIndex) => {
+    const result = Array.from(list);
+    const [removed] = result.splice(startIndex, 1);
+    result.splice(endIndex, 0, removed);
+    return result;
+  };
+
+  const onDragEnd = async (result) => {
+    const { destination, source } = result;
+    if (!destination) return;
+    if (destination.index === source.index) return;
+
+    const next = reorder(customButtons, source.index, destination.index);
+    setCustomButtons(next);
+
+    // persist order
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, { trackers: next });
+    }
+  };
+  // -------------------------------
+
   // Loading state
   if (loading) {
     return (
@@ -193,22 +220,71 @@ function App() {
               </button>
             </form>
 
-            {/* Tracker List */}
+            {/* Tracker List (drag to reorder) */}
             {Array.isArray(customButtons) && customButtons.length ? (
-              <div className="grid">
-                {customButtons.map((name, index) => (
-                  <div className="tracker-row" key={index}>
-                    <TrackerButton name={name} />
-                    <button
-                      className="delete"
-                      type="button"
-                      onClick={() => removeTracker(name)}
+              <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="trackers-droppable">
+                  {(provided) => (
+                    <div
+                      className="grid"
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
                     >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      {customButtons.map((name, index) => (
+                        <Draggable draggableId={name} index={index} key={name}>
+                          {(dragProvided, snapshot) => (
+                            <div
+                              ref={dragProvided.innerRef}
+                              {...dragProvided.draggableProps}
+                              {...dragProvided.dragHandleProps}
+                              className="tracker-row"
+                              style={{
+                                ...dragProvided.draggableProps.style,
+                                transition: snapshot.isDragging ? "transform 0.08s ease" : undefined,
+                                filter: snapshot.isDragging ? "brightness(1.04) saturate(1.02)" : undefined,
+                              }}
+                            >
+                              <TrackerButton name={name} />
+                              <button
+                                className="delete"
+                                type="button"
+                                onClick={() => removeTracker(name)}
+                                aria-label={`Delete ${name}`}
+                                title="Delete"
+                              >
+                                {/* trash icon */}
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    d="M3 6h18M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M10 11v6M14 11v6"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             ) : (
               <p className="empty">No trackers yet — create your first above.</p>
             )}
