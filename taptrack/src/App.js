@@ -20,6 +20,17 @@ function App() {
   const [customButtons, setCustomButtons] = useState([]);
   const [newButtonName, setNewButtonName] = useState("");
 
+  // Theme state + persistence (robust default = dark)
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem("theme");
+    return stored === "light" || stored === "dark" ? stored : "dark";
+  });
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+
   // Load user + their saved trackers (array on /users/{uid})
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -63,7 +74,6 @@ function App() {
       await setDoc(userDocRef, { trackers: updated });
 
       // Ensure a fresh tracker doc exists (document ID = tracker name) with count:0
-      // This makes re-adding the same name start from 0.
       const trackerDocRef = doc(db, "users", user.uid, "trackers", trimmed);
       try {
         await setDoc(trackerDocRef, { name: trimmed, count: 0 });
@@ -133,6 +143,13 @@ function App() {
       <div className="panel" style={{ maxWidth: 720, margin: "0 auto" }}>
         <div className="h1">TapTrack</div>
 
+        {/* Theme toggle */}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+          <button className="theme-toggle" type="button" onClick={toggleTheme}>
+            {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+          </button>
+        </div>
+
         {!user ? (
           <div style={{ textAlign: "center" }}>
             <p className="sub">Simple, fast, tap-to-track anything.</p>
@@ -156,7 +173,7 @@ function App() {
               </button>
             </div>
 
-            {/* Input + Add (as a form to enable Enter key and prevent weird submits) */}
+            {/* Input + Add (form enables Enter key and prevents weird submits) */}
             <form
               className="input-row"
               onSubmit={(e) => {
