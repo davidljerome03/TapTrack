@@ -21,7 +21,7 @@ function App() {
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          // ✅ Ensure trackers is an array before setting
+          //Ensure trackers is an array before setting
           if (Array.isArray(data.trackers)) {
             setCustomButtons(data.trackers);
           } else {
