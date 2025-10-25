@@ -1,12 +1,13 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  setPersistence,
+  browserSessionPersistence
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyAs1CMWlM1EwfnW-a5waDSmzxDwT7Zm0xk",
   authDomain: "taptrack-c1cc7.firebaseapp.com",
@@ -17,7 +18,6 @@ const firebaseConfig = {
   measurementId: "G-BNSHFE22GW"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
@@ -25,6 +25,9 @@ export const provider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
   try {
+    // 👇 This line sets session-only persistence
+    await setPersistence(auth, browserSessionPersistence);
+
     await signInWithPopup(auth, provider);
     console.log("User signed in!");
   } catch (error) {
