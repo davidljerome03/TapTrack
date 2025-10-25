@@ -2,7 +2,16 @@
 import React, { useState, useEffect } from "react";
 import TrackerButton from "./components/TrackerButton";
 import { signInWithGoogle, auth, db } from "./firebase";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import "./App.css";
 
 function App() {
@@ -39,7 +48,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Add new tracker name to array
+  // Add new tracker name to array AND create/reset its tracker doc
   const addTracker = async () => {
     const trimmed = newButtonName.trim();
     if (!trimmed) return;
@@ -52,17 +61,51 @@ function App() {
     if (user) {
       const userDocRef = doc(db, "users", user.uid);
       await setDoc(userDocRef, { trackers: updated });
+
+      // Ensure a fresh tracker doc exists (document ID = tracker name) with count:0
+      // This makes re-adding the same name start from 0.
+      const trackerDocRef = doc(db, "users", user.uid, "trackers", trimmed);
+      try {
+        await setDoc(trackerDocRef, { name: trimmed, count: 0 });
+      } catch (err) {
+        console.warn("Could not create/reset tracker doc:", err);
+      }
     }
   };
 
-  // Remove tracker name from array
+  // Remove tracker name from array + delete any tracker doc(s)
   const removeTracker = async (nameToRemove) => {
     const updated = customButtons.filter((n) => n !== nameToRemove);
     setCustomButtons(updated);
 
-    if (user) {
-      const userDocRef = doc(db, "users", user.uid);
-      await setDoc(userDocRef, { trackers: updated });
+    if (!user) {
+      return;
+    }
+
+    const userDocRef = doc(db, "users", user.uid);
+    await setDoc(userDocRef, { trackers: updated });
+
+    // 1) Try deleting a doc with ID === nameToRemove
+    const trackerDocRefById = doc(db, "users", user.uid, "trackers", nameToRemove);
+    try {
+      await deleteDoc(trackerDocRefById);
+    } catch (err) {
+      // ignore, we'll try the query approach next
+      console.info("delete by id may have failed or doc didn't exist:", err?.message || err);
+    }
+
+    // 2) Also delete any docs in the trackers subcollection that have field name == nameToRemove
+    try {
+      const trackersCol = collection(db, "users", user.uid, "trackers");
+      const q = query(trackersCol, where("name", "==", nameToRemove));
+      const snap = await getDocs(q);
+      const deletes = [];
+      snap.forEach((d) => {
+        deletes.push(deleteDoc(doc(db, "users", user.uid, "trackers", d.id)));
+      });
+      await Promise.all(deletes);
+    } catch (err) {
+      console.warn("query-delete failed:", err);
     }
   };
 
@@ -141,7 +184,7 @@ function App() {
                     <TrackerButton name={name} />
                     <button
                       className="delete"
-                      type="button"               // important inside a form
+                      type="button"
                       onClick={() => removeTracker(name)}
                     >
                       ✕
