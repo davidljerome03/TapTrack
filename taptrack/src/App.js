@@ -11,9 +11,9 @@ function App() {
   const [customButtons, setCustomButtons] = useState([]);
   const [newButtonName, setNewButtonName] = useState("");
 
-  // Load user and their saved buttons
+  // Load user + their saved trackers (array on /users/{uid})
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async currentUser => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser);
       setLoading(false);
 
@@ -22,136 +22,138 @@ function App() {
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          //Ensure trackers is an array before setting
           if (Array.isArray(data.trackers)) {
             setCustomButtons(data.trackers);
           } else {
             setCustomButtons([]);
           }
+        } else {
+          // create doc if missing
+          await setDoc(userDocRef, { trackers: [] });
+          setCustomButtons([]);
         }
+      } else {
+        setCustomButtons([]);
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // Add new tracker button
+  // Add new tracker name to array
   const addTracker = async () => {
     const trimmed = newButtonName.trim();
-    if (trimmed && !customButtons.includes(trimmed)) {
-      const updatedButtons = [...customButtons, trimmed];
-      setCustomButtons(updatedButtons);
-      setNewButtonName("");
+    if (!trimmed) return;
+    if (customButtons.includes(trimmed)) return;
 
-      if (user) {
-        const userDocRef = doc(db, "users", user.uid);
-        await setDoc(userDocRef, { trackers: updatedButtons });
-      }
-    }
-  };
-
-  // Remove tracker button
-  const removeTracker = async (nameToRemove) => {
-    const updatedButtons = customButtons.filter(name => name !== nameToRemove);
-    setCustomButtons(updatedButtons);
+    const updated = [...customButtons, trimmed];
+    setCustomButtons(updated);
+    setNewButtonName("");
 
     if (user) {
       const userDocRef = doc(db, "users", user.uid);
-      await setDoc(userDocRef, { trackers: updatedButtons });
+      await setDoc(userDocRef, { trackers: updated });
     }
   };
 
-  // Sign out and clear buttons
+  // Remove tracker name from array
+  const removeTracker = async (nameToRemove) => {
+    const updated = customButtons.filter((n) => n !== nameToRemove);
+    setCustomButtons(updated);
+
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, { trackers: updated });
+    }
+  };
+
+  // Sign out + clear local state
   const handleSignOut = () => {
     auth.signOut();
     setCustomButtons([]);
     setNewButtonName("");
   };
 
+  // Loading state
   if (loading) {
     return (
-      <div style={{ textAlign: "center", marginTop: "3rem" }}>
-        <h1>TapTrack</h1>
-        <p>Loading...</p>
+      <div className="center-screen">
+        <div className="panel" style={{ textAlign: "center", maxWidth: 420 }}>
+          <div className="h1">TapTrack</div>
+          <p className="sub">Loading your profile…</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ textAlign: "center", marginTop: "3rem" }}>
-      <h1>TapTrack</h1>
+    <div className="container">
+      <div className="panel" style={{ maxWidth: 720, margin: "0 auto" }}>
+        <div className="h1">TapTrack</div>
 
-      {!user ? (
-        <button onClick={signInWithGoogle}>Sign in with Google</button>
-      ) : (
-        <>
-          <p>Welcome, {user.displayName}!</p>
-          <img
-            src={user.photoURL}
-            alt="User profile"
-            style={{
-              borderRadius: "50%",
-              width: "80px",
-              height: "80px",
-              objectFit: "cover",
-              marginBottom: "1rem"
-            }}
-          />
-          <br />
-          <button onClick={handleSignOut}>Sign Out</button>
-
-          {/* Input for new tracker */}
-          <div style={{ marginTop: "2rem" }}>
-            <input
-              type="text"
-              placeholder="New tracker name"
-              value={newButtonName}
-              onChange={e => setNewButtonName(e.target.value)}
-              style={{
-                padding: "0.5rem",
-                marginRight: "0.5rem",
-                borderRadius: "4px",
-                border: "1px solid #ccc"
-              }}
-            />
-            <button
-              onClick={addTracker}
-              style={{
-                padding: "0.5rem 1rem",
-                borderRadius: "4px",
-                backgroundColor: "#007bff",
-                color: "#fff",
-                border: "none",
-                cursor: "pointer"
-              }}
-            >
-              Add Tracker
+        {!user ? (
+          <div style={{ textAlign: "center" }}>
+            <p className="sub">Simple, fast, tap-to-track anything.</p>
+            <button className="button primary" onClick={signInWithGoogle}>
+              Sign in with Google
             </button>
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            <p className="sub">Welcome, {user.displayName}!</p>
 
-      {/* Render tracker buttons */}
-      <div style={{ marginTop: "2rem" }}>
-        {Array.isArray(customButtons) &&
-          customButtons.map((name, index) => (
-            <div key={index} style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "0.5rem" }}>
-              <TrackerButton name={name} />
-              <button
-                onClick={() => removeTracker(name)}
-                style={{
-                  marginLeft: "0.5rem",
-                  backgroundColor: "#dc3545",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "4px",
-                  padding: "0.25rem 0.5rem",
-                  cursor: "pointer"
-                }}
-              >
-                ❌
+            {user.photoURL ? (
+              <img className="avatar" src={user.photoURL} alt="" />
+            ) : (
+              <div className="initial">{(user.displayName || "U")[0]}</div>
+            )}
+
+            <div style={{ textAlign: "center", marginBottom: 12 }}>
+              <button className="button" onClick={handleSignOut}>
+                Sign Out
               </button>
             </div>
-          ))}
+
+            {/* Input + Add (as a form to enable Enter key and prevent weird submits) */}
+            <form
+              className="input-row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                addTracker();
+              }}
+            >
+              <input
+                className="input"
+                type="text"
+                placeholder="New tracker name"
+                value={newButtonName}
+                onChange={(e) => setNewButtonName(e.target.value)}
+              />
+              <button className="button primary" type="submit">
+                Add Tracker
+              </button>
+            </form>
+
+            {/* Tracker List */}
+            {Array.isArray(customButtons) && customButtons.length ? (
+              <div className="grid">
+                {customButtons.map((name, index) => (
+                  <div className="tracker-row" key={index}>
+                    <TrackerButton name={name} />
+                    <button
+                      className="delete"
+                      type="button"               // important inside a form
+                      onClick={() => removeTracker(name)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="empty">No trackers yet — create your first above.</p>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

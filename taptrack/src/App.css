@@ -144,6 +144,31 @@ body{
   padding: 4px 8px; border-radius: 10px;
 }
 
+.tracker.tick::after {
+  content: "✓";
+  position: absolute;
+  right: 10px;
+  top: -10px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.9);
+  animation: tick 450ms ease forwards;
+}
+
+@keyframes tick {
+  40% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.9);
+  }
+}
 /* delete “x” button next to chip */
 .tracker-row{ display:flex; align-items:center; gap:10px }
 .delete{
@@ -182,3 +207,7 @@ body{
   margin: 10px auto 8px;
   font-weight:700; font-size: 28px;
 }
+.tracker-row { position: relative; }
+.delete { position: relative; z-index: 2; }
+.tracker { z-index: 1; }
+.tracker.tick::after { pointer-events: none; }
