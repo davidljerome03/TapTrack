@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import TrackerButton from "./components/TrackerButton";
 import { signInWithGoogle, auth, db } from "./firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import "./App.css";
 
 function App() {
   const [user, setUser] = useState(null);
