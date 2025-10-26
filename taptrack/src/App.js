@@ -14,6 +14,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import "./App.css";
+import logo from "/workspaces/TapTrack/taptrack/src/favicon.png"; // <-- added logo import
 
 function App() {
   const [user, setUser] = useState(null);
@@ -168,7 +169,12 @@ function App() {
     return (
       <div className="center-screen">
         <div className="panel" style={{ textAlign: "center", maxWidth: 420 }}>
-          <div className="h1">TapTrack</div>
+          {/* header with logo (loading screen) */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
+            <img src={logo} alt="TapTrack logo" style={{ width: 40, height: 40, objectFit: "contain" }} />
+            <div className="h1">TapTrack</div>
+          </div>
+
           <p className="sub">Loading your profile…</p>
         </div>
       </div>
@@ -178,7 +184,11 @@ function App() {
   return (
     <div className="container">
       <div className="panel" style={{ maxWidth: 720, margin: "0 auto" }}>
-        <div className="h1">TapTrack</div>
+        {/* header with logo */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 8 }}>
+          <img src={logo} alt="TapTrack logo" style={{ width: 40, height: 40, objectFit: "contain" }} />
+          <div className="h1">TapTrack</div>
+        </div>
 
         {/* Theme toggle */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
