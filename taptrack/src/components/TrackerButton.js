@@ -1,64 +1,52 @@
 // src/components/TrackerButton.js
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
-import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "firebase/firestore";
 
-function TrackerButton({ name }) {
+function TrackerButton({ name, colorHex }) {
   const [count, setCount] = useState(0);
-  const btnRef = useRef(null);
+  const [chipColor, setChipColor] = useState(colorHex || null);
+
+  useEffect(() => setChipColor(colorHex || null), [colorHex]);
 
   useEffect(() => {
-    async function loadData() {
-      const user = auth.currentUser;
-      if (!user) return;
-      const ref = doc(db, "users", user.uid, "trackers", name);
-      const snap = await getDoc(ref);
+    const user = auth.currentUser;
+    if (!user) return;
+    const ref = doc(db, "users", user.uid, "trackers", name);
+
+    const unsub = onSnapshot(ref, async (snap) => {
       if (snap.exists()) {
-        setCount(snap.data().count || 0);
+        const d = snap.data();
+        setCount(d.count || 0);
+        if (!colorHex) setChipColor(d.color || null);
       } else {
         await setDoc(ref, { count: 0 });
-        setCount(0);
       }
-    }
-    loadData();
-  }, [name]);
+    });
+    return () => unsub();
+  }, [name, colorHex]);
 
   const handleClick = async () => {
     const user = auth.currentUser;
-    if (!user) {
-      alert("Please sign in first!");
-      return;
-    }
-
+    if (!user) return alert("Please sign in first!");
     const ref = doc(db, "users", user.uid, "trackers", name);
-
-    // Firestore update (create if missing)
     try {
       await updateDoc(ref, { count: increment(1) });
     } catch {
-      await setDoc(ref, { count: 1 });
-    }
-    setCount((prev) => prev + 1);
-
-    // ✓ pop animation — add 'tick' class briefly
-    const el = btnRef.current;
-    if (el) {
-      el.classList.remove("tick");           // reset if mid-animation
-      requestAnimationFrame(() => {
-        el.classList.add("tick");
-        setTimeout(() => el.classList.remove("tick"), 500); // matches 450ms CSS
-      });
+      await setDoc(ref, { count: 1 }, { merge: true });
     }
   };
 
+  const style = chipColor
+    ? {
+        background: `linear-gradient(180deg, ${chipColor}, ${chipColor})`,
+        borderColor: `${chipColor}b0`,
+        boxShadow: `0 6px 20px ${chipColor}40`,
+      }
+    : undefined;
+
   return (
-    <button
-      ref={btnRef}
-      className="tracker"                     // <-- use the CSS class, not inline styles
-      onClick={handleClick}
-      aria-label={`Increment ${name}`}
-      title="Tap to increment"
-    >
+    <button className="tracker" style={style} onClick={handleClick}>
       <span className="name">{name}</span>
       <span className="count">{count}</span>
     </button>
