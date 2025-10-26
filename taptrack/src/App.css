@@ -159,35 +159,111 @@ body{
 .input::placeholder{ color:#7b89b1 }
 .input:focus{ outline:none; border-color: var(--ring); box-shadow: 0 0 0 3px var(--ring) }
 
-/* tracker grid */
-.grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
-  margin-top: 6px;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 36px 0px; /* first = vertical gap, second = horizontal gap (smaller now) */
+  justify-content: center; /* keeps grid centered */
+  margin-top: 10px;
 }
 
-/* tracker chip */
-.tracker{
-  position: relative;
-  display:flex; align-items:center; justify-content:space-between;
+
+/* Stack tracker + actions vertically */
+.tracker-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
-  padding: 14px 14px 14px 16px;
+}
+
+/* Widened tracker button */
+.tracker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 20px;
   border-radius: 14px;
   background: linear-gradient(180deg, #344aee, #2742ea);
-  color:#fff;
-  border:1px solid rgba(79,124,255,.6);
+  color: #fff;
+  border: 1px solid rgba(79,124,255,.6);
   box-shadow: 0 6px 20px rgba(79,124,255,.25);
-  cursor:pointer;
-  transition: transform .05s ease, filter .15s ease;
+  cursor: pointer;
+  transition: transform .1s ease, filter .15s ease;
+
+  width: 180px; /* significantly wider now */
+  min-height: 70px;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
+  flex-shrink: 0;
 }
-.tracker:active{ transform: scale(.98) }
-.tracker .name { font-weight:600 }
-.tracker .count{
+
+.tracker:hover {
+  transform: scale(1.05);
+  filter: brightness(1.15);
+}
+
+.tracker:active {
+  transform: scale(0.95);
+}
+
+/* Checkmark bubble feedback */
+.tracker::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  color: white;
+  background: rgba(255,255,255,0.12);
+  border-radius: 50%;
+  padding: 14px;
+  opacity: 0;
+  pointer-events: none;
+  font-size: 20px;
+  transition: opacity .3s ease, transform .4s ease;
+}
+
+.tracker.clicked::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.6);
+  animation: fadeOut 0.5s ease forwards;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2);
+  }
+}
+
+.tracker .name {
+  font-weight: 600;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.tracker .count {
   font-variant-numeric: tabular-nums;
   background: rgba(255,255,255,.15);
-  padding: 4px 8px; border-radius: 10px;
+  padding: 4px 8px;
+  border-radius: 10px;
 }
+
+/* Settings row centered below */
+.tracker-row .tracker-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
 
 /* ✓ tick animation */
 .tracker.tick::after {
