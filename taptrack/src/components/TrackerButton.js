@@ -1,7 +1,7 @@
 // src/components/TrackerButton.js
 import React, { useState, useEffect } from "react";
 import { db, auth } from "../firebase";
-import { doc, getDoc, setDoc, updateDoc, increment, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, updateDoc, increment, onSnapshot } from "firebase/firestore";
 
 function TrackerButton({ name, colorHex }) {
   const [count, setCount] = useState(0);

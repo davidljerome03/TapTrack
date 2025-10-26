@@ -51,8 +51,7 @@
   --input-border: rgba(15,23,42,.12);
 }
 
-/* optional explicit */
-:root[data-theme="dark"] {}
+
 
 * { box-sizing: border-box }
 html, body, #root { height: 100% }
