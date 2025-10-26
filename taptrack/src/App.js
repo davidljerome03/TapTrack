@@ -13,6 +13,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import "./App.css";
+import logo from "/workspaces/TapTrack/taptrack/src/favicon.png";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -94,7 +95,7 @@ function App() {
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, { trackers: updated });
 
-    // Delete the associated tracker doc
+    // Delete associated tracker doc
     const trackerDocRefById = doc(db, "users", user.uid, "trackers", nameToRemove);
     try {
       await deleteDoc(trackerDocRefById);
@@ -128,7 +129,16 @@ function App() {
     return (
       <div className="center-screen">
         <div className="panel" style={{ textAlign: "center", maxWidth: 420 }}>
-          <div className="h1">TapTrack</div>
+          <div className="brand" style={{ justifyContent: "center" }}>
+            <img
+              src={logo}
+              alt="TapTrack logo"
+              style={{ width: 40, height: 40, borderRadius: 8 }}
+            />
+            <div className="h1" style={{ margin: 0 }}>
+              TapTrack
+            </div>
+          </div>
           <p className="sub">Loading your profile…</p>
         </div>
       </div>
@@ -139,7 +149,22 @@ function App() {
   return (
     <div className="container">
       <div className="panel" style={{ maxWidth: 720, margin: "0 auto" }}>
-        <div className="h1">TapTrack</div>
+        {/* Header with logo + title */}
+        <div className="brand" style={{ justifyContent: "center", marginBottom: 10 }}>
+          <img
+            src={logo}
+            alt="TapTrack logo"
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 10,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+            }}
+          />
+          <div className="h1" style={{ margin: 0 }}>
+            TapTrack
+          </div>
+        </div>
 
         {/* Theme toggle */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
@@ -157,7 +182,9 @@ function App() {
           </div>
         ) : (
           <>
-            <p className="sub">Welcome, {user.displayName}!</p>
+            <p className="sub" style={{ fontWeight: 600, fontSize: "1.05rem" }}>
+              Welcome, {user.displayName}!
+            </p>
 
             {user.photoURL ? (
               <img className="avatar" src={user.photoURL} alt="" />
