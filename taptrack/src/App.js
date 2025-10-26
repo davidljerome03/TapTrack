@@ -1,7 +1,7 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
 import TrackerButton from "./components/TrackerButton";
-import TrackerActions from "./components/TrackerActions"; // ✅ NEW
+import TrackerActions from "./components/TrackerActions"; // gear rail
 import { signInWithGoogle, auth, db } from "./firebase";
 import {
   doc,
@@ -21,7 +21,7 @@ function App() {
   const [customButtons, setCustomButtons] = useState([]);
   const [newButtonName, setNewButtonName] = useState("");
 
-  // ===== Theme (default dark) =====
+  // Theme (default dark)
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem("theme");
     return stored === "light" || stored === "dark" ? stored : "dark";
@@ -32,13 +32,11 @@ function App() {
   }, [theme]);
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
-  // ===== Modal & UI helpers (NEW) =====
-  // confirm = { name, mode: 'delete' | 'override' | 'rename' }
+  // Dialog state: { name, mode: 'delete' | 'override' | 'rename' | 'color' }
   const [confirm, setConfirm] = useState(null);
-  // local color cache (optional, chip reads live too)
   const [colors, setColors] = useState({});
 
-  // ===== Load user & tracker names =====
+  // Load user & tracker list
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser);
@@ -49,11 +47,7 @@ function App() {
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (Array.isArray(data.trackers)) {
-            setCustomButtons(data.trackers);
-          } else {
-            setCustomButtons([]);
-          }
+          setCustomButtons(Array.isArray(data.trackers) ? data.trackers : []);
         } else {
           await setDoc(userDocRef, { trackers: [] });
           setCustomButtons([]);
@@ -65,11 +59,10 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // ===== Add tracker =====
+  // Add tracker
   const addTracker = async () => {
     const trimmed = newButtonName.trim();
-    if (!trimmed) return;
-    if (customButtons.includes(trimmed)) return;
+    if (!trimmed || customButtons.includes(trimmed)) return;
 
     const updated = [...customButtons, trimmed];
     setCustomButtons(updated);
@@ -88,63 +81,57 @@ function App() {
     }
   };
 
-  // ===== Remove tracker =====
+  // Remove tracker
   const removeTracker = async (nameToRemove) => {
     const updated = customButtons.filter((n) => n !== nameToRemove);
     setCustomButtons(updated);
-
     if (!user) return;
 
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, { trackers: updated });
 
-    // delete by ID
-    const trackerDocRefById = doc(db, "users", user.uid, "trackers", nameToRemove);
     try {
-      await deleteDoc(trackerDocRefById);
-    } catch {
-      /* ignore */
-    }
-
-    // delete any doc with field name == nameToRemove
+      await deleteDoc(doc(db, "users", user.uid, "trackers", nameToRemove));
+    } catch {}
     try {
       const trackersCol = collection(db, "users", user.uid, "trackers");
       const q = query(trackersCol, where("name", "==", nameToRemove));
       const snap = await getDocs(q);
-      const deletes = [];
-      snap.forEach((d) => deletes.push(deleteDoc(doc(db, "users", user.uid, "trackers", d.id))));
-      await Promise.all(deletes);
+      await Promise.all(
+        snap.docs.map((d) => deleteDoc(doc(db, "users", user.uid, "trackers", d.id)))
+      );
     } catch (err) {
       console.warn("query-delete failed:", err);
     }
   };
 
-  // ===== Sign out =====
+  // Sign out
   const handleSignOut = () => {
     auth.signOut();
     setCustomButtons([]);
     setNewButtonName("");
   };
 
-  // ===== NEW: set chip color =====
+  // Set chip color (from modal)
   const setTrackerColor = async (name, hex) => {
     if (!auth.currentUser) return;
     const ref = doc(db, "users", auth.currentUser.uid, "trackers", name);
     await setDoc(ref, { color: hex }, { merge: true });
     setColors((m) => ({ ...m, [name]: hex }));
+    setConfirm(null);
   };
 
-  // ===== NEW: override value =====
+  // Override value
   const doOverride = async (name, value) => {
     if (!auth.currentUser) return;
     const n = Number(value);
-    if (Number.isNaN(n) || n < 0) return alert("Enter a non-negative number.");
+    if (!Number.isFinite(n) || n < 0) return alert("Enter a non-negative number.");
     const ref = doc(db, "users", auth.currentUser.uid, "trackers", name);
     await setDoc(ref, { count: n }, { merge: true });
     setConfirm(null);
   };
 
-  // ===== NEW: rename tracker =====
+  // Rename tracker
   const renameTracker = async (oldName, newName) => {
     if (!auth.currentUser) return;
     const trimmed = (newName || "").trim();
@@ -156,24 +143,17 @@ function App() {
     const oldRef = doc(db, "users", uid, "trackers", oldName);
     const newRef = doc(db, "users", uid, "trackers", trimmed);
 
-    // copy doc if exists
     let payload = {};
     const oldSnap = await getDoc(oldRef);
     if (oldSnap.exists()) payload = oldSnap.data();
 
-    // write new, keep count/color, ensure name
     await setDoc(newRef, { ...payload, name: trimmed }, { merge: true });
 
-    // update array
     const updated = customButtons.map((n) => (n === oldName ? trimmed : n));
     setCustomButtons(updated);
-    const userDocRef = doc(db, "users", uid);
-    await setDoc(userDocRef, { trackers: updated });
-
-    // delete old
+    await setDoc(doc(db, "users", uid), { trackers: updated });
     await deleteDoc(oldRef);
 
-    // move color cache if present
     setColors((m) => {
       if (!m[oldName]) return m;
       const { [oldName]: c, ...rest } = m;
@@ -183,7 +163,7 @@ function App() {
     setConfirm(null);
   };
 
-  // ===== Loading =====
+  // Loading state
   if (loading) {
     return (
       <div className="center-screen">
@@ -198,7 +178,6 @@ function App() {
   return (
     <div className="container">
       <div className="panel" style={{ maxWidth: 720, margin: "0 auto" }}>
-        {/* Your logo/title stays untouched */}
         <div className="h1">TapTrack</div>
 
         {/* Theme toggle */}
@@ -251,7 +230,7 @@ function App() {
               </button>
             </form>
 
-            {/* List */}
+            {/* Trackers */}
             {Array.isArray(customButtons) && customButtons.length ? (
               <div className="grid">
                 {customButtons.map((name) => (
@@ -260,7 +239,7 @@ function App() {
                     <TrackerActions
                       onRename={() => setConfirm({ name, mode: "rename" })}
                       onOverride={() => setConfirm({ name, mode: "override" })}
-                      onPickColor={(hex) => setTrackerColor(name, hex)}
+                      onColor={() => setConfirm({ name, mode: "color" })}
                       onDelete={() => setConfirm({ name, mode: "delete" })}
                     />
                   </div>
@@ -270,7 +249,7 @@ function App() {
               <p className="empty">No trackers yet — create your first above.</p>
             )}
 
-            {/* Modal */}
+            {/* Modals */}
             {confirm && (
               <div className="modal-backdrop" onClick={() => setConfirm(null)}>
                 <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -352,6 +331,37 @@ function App() {
                           </button>
                         </div>
                       </form>
+                    </>
+                  )}
+
+                  {confirm.mode === "color" && (
+                    <>
+                      <h3>Choose a color</h3>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+                        {[
+                          "#5378ff",
+                          "#10b8c9",
+                          "#7c3aed",
+                          "#ef4444",
+                          "#22c55e",
+                          "#f59e0b",
+                          "#7aa8ff",
+                          "#8b5cf6",
+                        ].map((c) => (
+                          <button
+                            key={c}
+                            className="swatch"
+                            style={{ background: c, width: 28, height: 28 }}
+                            onClick={() => setTrackerColor(confirm.name, c)}
+                            aria-label={`Set color ${c}`}
+                          />
+                        ))}
+                      </div>
+                      <div className="modal-actions">
+                        <button className="button" onClick={() => setConfirm(null)}>
+                          Close
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
