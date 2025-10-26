@@ -250,19 +250,29 @@ body{
   100%{ opacity: 0; transform: translateY(-6px) scale(0.9); }
 }
 
-/* delete “x” button next to chip */
-.tracker-row{ display:flex; align-items:center; gap:10px }
-.delete{
-  border:1px solid rgba(224,75,89,.45);
-  background: linear-gradient(180deg, #8f2230, #7b1c29);
-  color:#ffeef0;
+/* delete button (teal version to match brand) */
+.tracker-row { display: flex; align-items: center; gap: 10px; }
+
+.delete {
+  border: 1px solid rgba(0, 200, 210, 0.45);
+  background: linear-gradient(180deg, #23c9d9, #10b8c9);
+  color: #052a2f;
   border-radius: 10px;
   padding: 8px 10px;
-  cursor:pointer;
-  transition: transform .08s ease, filter .15s ease;
+  cursor: pointer;
+  transition: transform 0.08s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 6px 18px rgba(16, 184, 201, 0.25);
 }
-.delete:hover{ filter: brightness(1.04) }
-.delete:active{ transform: scale(.96) }
+.delete:hover {
+  filter: brightness(1.05) saturate(1.02);
+}
+.delete:active {
+  transform: scale(0.96);
+}
+.delete svg {
+  display: block;
+}
+
 
 /* empty state */
 .empty{
