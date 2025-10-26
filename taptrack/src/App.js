@@ -20,18 +20,20 @@ function App() {
   const [customButtons, setCustomButtons] = useState([]);
   const [newButtonName, setNewButtonName] = useState("");
 
-  // Theme state + persistence (robust default = dark)
+  // --- Theme state + persistence (default = dark) ---
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem("theme");
     return stored === "light" || stored === "dark" ? stored : "dark";
   });
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
+
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
-  // Load user + their saved trackers (array on /users/{uid})
+  // --- Load user & trackers from Firestore ---
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser);
@@ -48,7 +50,6 @@ function App() {
             setCustomButtons([]);
           }
         } else {
-          // create doc if missing
           await setDoc(userDocRef, { trackers: [] });
           setCustomButtons([]);
         }
@@ -56,10 +57,11 @@ function App() {
         setCustomButtons([]);
       }
     });
+
     return () => unsubscribe();
   }, []);
 
-  // Add new tracker name to array AND create/reset its tracker doc
+  // --- Add new tracker ---
   const addTracker = async () => {
     const trimmed = newButtonName.trim();
     if (!trimmed) return;
@@ -73,7 +75,6 @@ function App() {
       const userDocRef = doc(db, "users", user.uid);
       await setDoc(userDocRef, { trackers: updated });
 
-      // Ensure a fresh tracker doc exists (document ID = tracker name) with count:0
       const trackerDocRef = doc(db, "users", user.uid, "trackers", trimmed);
       try {
         await setDoc(trackerDocRef, { name: trimmed, count: 0 });
@@ -83,50 +84,46 @@ function App() {
     }
   };
 
-  // Remove tracker name from array + delete any tracker doc(s)
+  // --- Remove tracker ---
   const removeTracker = async (nameToRemove) => {
     const updated = customButtons.filter((n) => n !== nameToRemove);
     setCustomButtons(updated);
 
-    if (!user) {
-      return;
-    }
+    if (!user) return;
 
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, { trackers: updated });
 
-    // 1) Try deleting a doc with ID === nameToRemove
+    // Delete the associated tracker doc
     const trackerDocRefById = doc(db, "users", user.uid, "trackers", nameToRemove);
     try {
       await deleteDoc(trackerDocRefById);
-    } catch (err) {
-      // ignore, we'll try the query approach next
-      console.info("delete by id may have failed or doc didn't exist:", err?.message || err);
+    } catch {
+      /* ignore */
     }
 
-    // 2) Also delete any docs in the trackers subcollection that have field name == nameToRemove
     try {
       const trackersCol = collection(db, "users", user.uid, "trackers");
       const q = query(trackersCol, where("name", "==", nameToRemove));
       const snap = await getDocs(q);
       const deletes = [];
-      snap.forEach((d) => {
-        deletes.push(deleteDoc(doc(db, "users", user.uid, "trackers", d.id)));
-      });
+      snap.forEach((d) =>
+        deletes.push(deleteDoc(doc(db, "users", user.uid, "trackers", d.id)))
+      );
       await Promise.all(deletes);
     } catch (err) {
       console.warn("query-delete failed:", err);
     }
   };
 
-  // Sign out + clear local state
+  // --- Sign out ---
   const handleSignOut = () => {
     auth.signOut();
     setCustomButtons([]);
     setNewButtonName("");
   };
 
-  // Loading state
+  // --- Loading state ---
   if (loading) {
     return (
       <div className="center-screen">
@@ -138,6 +135,7 @@ function App() {
     );
   }
 
+  // --- Main UI ---
   return (
     <div className="container">
       <div className="panel" style={{ maxWidth: 720, margin: "0 auto" }}>
@@ -173,7 +171,7 @@ function App() {
               </button>
             </div>
 
-            {/* Input + Add (form enables Enter key and prevents weird submits) */}
+            {/* Add Tracker */}
             <form
               className="input-row"
               onSubmit={(e) => {
@@ -203,8 +201,32 @@ function App() {
                       className="delete"
                       type="button"
                       onClick={() => removeTracker(name)}
+                      aria-label={`Delete ${name}`}
+                      title="Delete"
                     >
-                      ✕
+                      {/* teal trash icon */}
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M3 6h18M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M10 11v6M14 11v6"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                      </svg>
                     </button>
                   </div>
                 ))}
